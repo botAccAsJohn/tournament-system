@@ -1,0 +1,10 @@
+[
+    {
+        "tournament_name": "Winter Premier League",
+        "teams": ["Red Dragons", "Blue Eagles", "Golden Lions", "Silver Sharks"]
+    },
+    {
+        "tournament_name": "City Cup",
+        "teams": ["Metro FC", "Unity Stars", "Wildfire United"]
+    }
+]

@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Champions League 2026",
+        "start_date": "2026-06-01",
+        "end_date": "2026-07-15",
+        "type": "knockout",
+        "status": "upcoming"
+    },
+    {
+        "name": "Winter Premier League",
+        "start_date": "2026-01-10",
+        "end_date": "2026-03-20",
+        "type": "league",
+        "status": "completed"
+    },
+    {
+        "name": "City Cup",
+        "start_date": "2026-04-05",
+        "end_date": "2026-05-10",
+        "type": "knockout",
+        "status": "ongoing"
+    }
+]
