@@ -4,6 +4,7 @@
         <li><a href="./tournament.php">Tournament</a></li>
         <li><a href="./team.php">Team</a></li>
         <li><a href="./player.php">Players</a></li>
+        <li><a href="./match.php">Match</a></li>
     </ul>
 </nav>
 <style>
