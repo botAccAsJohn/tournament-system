@@ -221,6 +221,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                                 .show();
                         }
                         $btn.prop('disabled', false).val('Create Match');
+                        loadMatches();
                     },
 
                     error: function() {
@@ -231,92 +232,175 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                     }
                 });
             });
-        });
 
-        function attachActionListeners() {
+            function attachActionListeners() {
 
-            $('.edit-icon').off('click').on('click', function() {
-                const $row = $(this).closest('tr');
-                const id = $row.data('id');
-                const matchDate = $row.find('.col-date').text();
+                $('.edit-icon').off('click').on('click', function() {
+                    const $row = $(this).closest('tr');
+                    const id = $row.data('id');
+                    const tournamentName = $row.find('.col-tournament').text().trim();
+                    const team1Name = $row.find('.col-team1').text().trim();
+                    const team2Name = $row.find('.col-team2').text().trim();
+                    const matchDate = $row.find('.col-date').text().trim();
 
-                // Only date is editable; team/tournament names are display-only
-                $row.find('.col-date').html(`<input type="date" value="${matchDate}" />`);
-                $row.find('.action-cell').html(`
-                <div class="action-buttons">
-                    <button class="btn-save" data-id="${id}">Save</button>
-                    <button class="btn-cancel">Cancel</button>
-                </div>
-            `);
+                    // Find the original tournament ID to pre-select it
+                    const currentTournament = AllTournament.find(t => t.name === tournamentName);
+                    if (!currentTournament) return;
 
-                // ── Save ──
-                $row.find('.btn-save').on('click', function(e) {
-                    e.preventDefault();
-                    const updatedData = {
-                        id: id,
-                        match_date: $row.find('.col-date input').val()
-                    };
+                    // Create Tournament Dropdown
+                    let tournamentOptions = AllTournament.map(t => `<option value="${t.id}" ${t.id == currentTournament.id ? 'selected' : ''}>${t.name}</option>`).join('');
+                    $row.find('.col-tournament').html(`<select class="edit-tournament" style="width: 100%">${tournamentOptions}</select>`);
 
-                    if (!updatedData.match_date) {
-                        alert('Match date is required.');
-                        return;
+                    // Create Team 1 Dropdown
+                    $row.find('.col-team1').html(`<select class="edit-team1" style="width: 100%"><option value="">Loading...</option></select>`);
+
+                    // Create Team 2 Dropdown
+                    $row.find('.col-team2').html(`<select class="edit-team2" style="width: 100%"><option value="">Loading...</option></select>`);
+
+                    // Create Date Input
+                    $row.find('.col-date').html(`<input type="date" class="edit-date" value="${matchDate}" style="width: 100%" />`);
+
+                    $row.find('.action-cell').html(`
+                    <div class="action-buttons">
+                        <button class="btn-save" data-id="${id}">Save</button>
+                        <button class="btn-cancel">Cancel</button>
+                    </div>
+                `);
+
+                    // Function to load teams and setup cascading logic within the row
+                    function setupRowConstraints(row, tId, initialT1Name = null, initialT2Name = null) {
+                        $.ajax({
+                            url: '../api/team/getTeamsByTournament.php',
+                            method: 'POST',
+                            data: {
+                                tournament_id: tId
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    const rowTeams = response.data;
+                                    const $t1 = row.find('.edit-team1');
+                                    const $t2 = row.find('.edit-team2');
+                                    const $date = row.find('.edit-date');
+
+                                    // Sync Date Constraints
+                                    const tournamentDetails = AllTournament.find(t => t.id == tId);
+                                    if (tournamentDetails) {
+                                        const today = new Date().toISOString().split('T')[0];
+                                        $date.attr({
+                                            min: (tournamentDetails.start_date > today) ? tournamentDetails.start_date : today,
+                                            max: tournamentDetails.end_date
+                                        });
+                                    }
+
+                                    function updateTeam2Options() {
+                                        const val1 = $t1.val();
+                                        const val2Original = initialT2Name ? rowTeams.find(t => t.name === initialT2Name)?.id : $t2.val();
+
+                                        $t2.empty().append('<option value="">-- Select Team 2 --</option>');
+                                        rowTeams.forEach(team => {
+                                            if (team.id != val1) {
+                                                $t2.append(`<option value="${team.id}" ${team.id == val2Original ? 'selected' : ''}>${team.name}</option>`);
+                                            }
+                                        });
+                                        initialT2Name = null; // Clear after first load
+                                    }
+
+                                    $t1.empty().append('<option value="">-- Select Team 1 --</option>');
+                                    rowTeams.forEach(team => {
+                                        const isSelected = initialT1Name && team.name === initialT1Name;
+                                        $t1.append(`<option value="${team.id}" ${isSelected ? 'selected' : ''}>${team.name}</option>`);
+                                    });
+                                    initialT1Name = null; // Clear after first load
+
+                                    updateTeam2Options();
+
+                                    $t1.off('change').on('change', updateTeam2Options);
+                                }
+                            }
+                        });
                     }
 
-                    $.ajax({
-                        url: '../api/match/editHandler.php',
-                        method: 'POST',
-                        data: updatedData,
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.status === 'success') {
-                                alert('Match updated successfully!');
-                                loadMatches();
-                            } else {
-                                alert('Error: ' + response.message);
-                            }
-                        },
-                        error: function() {
-                            alert('Error updating match. Please try again.');
+                    // Initial setup for the row
+                    setupRowConstraints($row, currentTournament.id, team1Name, team2Name);
+
+                    // Handle Tournament Change in Row
+                    $row.find('.edit-tournament').on('change', function() {
+                        setupRowConstraints($row, $(this).val());
+                    });
+
+                    // ── Save ──
+                    $row.find('.btn-save').on('click', function(e) {
+                        e.preventDefault();
+                        const updatedData = {
+                            id: id,
+                            tournament_id: $row.find('.edit-tournament').val(),
+                            team_id_1: $row.find('.edit-team1').val(),
+                            team_id_2: $row.find('.edit-team2').val(),
+                            start_date: $row.find('.edit-date').val()
+                        };
+
+                        if (!updatedData.tournament_id || !updatedData.team_id_1 || !updatedData.team_id_2 || !updatedData.start_date) {
+                            alert('All fields are required.');
+                            return;
                         }
+
+                        $.ajax({
+                            url: '../api/match/editHandler.php',
+                            method: 'POST',
+                            data: updatedData,
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    alert('Match updated successfully!');
+                                    loadMatches();
+                                } else {
+                                    alert('Error: ' + response.message);
+                                }
+                            },
+                            error: function() {
+                                alert('Error updating match. Please try again.');
+                            }
+                        });
+                    });
+
+                    // ── Cancel ──
+                    $row.find('.btn-cancel').on('click', function(e) {
+                        e.preventDefault();
+                        loadMatches();
                     });
                 });
 
-                // ── Cancel ──
-                $row.find('.btn-cancel').on('click', function(e) {
-                    e.preventDefault();
-                    loadMatches();
-                });
-            });
+                $('.delete-icon').off('click').on('click', function() {
+                    const $row = $(this).closest('tr');
+                    const id = $row.data('id');
+                    const team1 = $row.find('.col-team1').text();
+                    const team2 = $row.find('.col-team2').text();
 
-            $('.delete-icon').off('click').on('click', function() {
-                const $row = $(this).closest('tr');
-                const id = $row.data('id');
-                const team1 = $row.find('.col-team1').text();
-                const team2 = $row.find('.col-team2').text();
-
-                if (confirm(`Are you sure you want to delete the match "${team1} vs ${team2}"?`)) {
-                    $.ajax({
-                        url: '../api/match/deleteHandler.php',
-                        method: 'POST',
-                        data: {
-                            id: id
-                        },
-                        dataType: 'json',
-                        success: function(response) {
-                            if (response.status === 'success') {
-                                alert('Match deleted successfully!');
-                                loadMatches();
-                            } else {
-                                alert('Error: ' + response.message);
+                    if (confirm(`Are you sure you want to delete the match "${team1} vs ${team2}"?`)) {
+                        $.ajax({
+                            url: '../api/match/deleteHandler.php',
+                            method: 'POST',
+                            data: {
+                                id: id
+                            },
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    alert('Match deleted successfully!');
+                                    loadMatches();
+                                } else {
+                                    alert('Error: ' + response.message);
+                                }
+                            },
+                            error: function() {
+                                alert('Error deleting match. Please try again.');
                             }
-                        },
-                        error: function() {
-                            alert('Error deleting match. Please try again.');
-                        }
-                    });
-                }
-            });
-        }
+                        });
+                    }
+                });
+            }
+        });
     </script>
 </body>
 

@@ -5,6 +5,7 @@
         <li><a href="./team.php">Team</a></li>
         <li><a href="./player.php">Players</a></li>
         <li><a href="./match.php">Match</a></li>
+        <li><a href="./matchScore.php">Match Score</a></li>
     </ul>
 </nav>
 <style>
@@ -15,7 +16,7 @@
         transform: translateX(-50%);
         background: blur;
         opacity: 1;
-        padding: 12px 25px;
+        padding: 18px 40px;
         border-radius: 40px;
         box-shadow: 2px 8px 25px rgba(0, 0, 0, 0.4);
     }
@@ -26,7 +27,7 @@
         left: 50%;
         transform: translateX(-50%);
 
-        padding: 12px 28px;
+        padding: 18px 25px;
         border-radius: 40px;
 
         background: rgba(255, 255, 255, 0.08);

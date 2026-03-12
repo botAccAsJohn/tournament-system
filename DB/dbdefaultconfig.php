@@ -91,7 +91,8 @@ $sql = "CREATE DATABASE tournament_system
             ON DELETE SET NULL,
 
             CHECK (team1_id <> team2_id),
-            UNIQUE (tournament_id, team1_id, team2_id)
+            UNIQUE (tournament_id, team1_id, team2_id),
+            UNIQUE (tournament_id, team2_id, team1_id)
         );
 
         CREATE TABLE match_scores (
