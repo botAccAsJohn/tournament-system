@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     <title>Team Management</title>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="tableUtils.js"></script>
 
     <style>
         * {
@@ -292,6 +293,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
     <div class="table-container">
         <h3>All Teams</h3>
+        <div class="search-bar">
+            <input type="text" id="teamSearch" placeholder="🔍 Search teams...">
+        </div>
         <table id="TeamTable">
             <thead>
                 <tr>
@@ -312,6 +316,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 <script>
     $(document).ready(function () {
         let tournaments = [];
+        const tp = new TablePager('teamBody', { pageSize: 10, searchId: 'teamSearch' });
 
         function populateTournamentOptions($select, selectedId = '') {
             const options = ['<option value="">Select Tournament</option>'];
@@ -393,8 +398,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                     const $tbody = $('#teamBody');
                     if (response.status === 'success' && response.data.length > 0) {
                         $tbody.empty();
+                        const rows = [];
                         response.data.forEach(team => {
-                            const row = `
+                            const tr = $(`
                         <tr data-id="${team.id}" data-tournament-id="${team.tournament_id}">
                             <td class="col-name">${team.name}</td>
                             <td class="col-tournament">${team.tournament_name || 'N/A'}</td>
@@ -403,14 +409,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                                 <span class="delete-icon" title="Delete">&#128465;&#65039;</span>
                             </td>
                         </tr>
-                    `;
-                            $tbody.append(row);
+                    `)[0];
+                            rows.push(tr);
                         });
+                        tp.setRows(rows);
                         attachActionListeners();
                     } else {
                         $tbody.html(
                             '<tr><td colspan="3" class="no-teams">No teams found.</td></tr>'
                         );
+                        tp.setRows([]);
                     }
                 },
                 error: function () {

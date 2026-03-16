@@ -16,6 +16,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     <title>Manage Players</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="tableUtils.js"></script>
 </head>
 
 <body>
@@ -50,8 +51,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
         <a href="welcome.php" class="back-link">← Back to Dashboard</a>
     </div>
 
+    <!-- Generate league matches panel (shown only for League tournaments) -->
+    <div id="generatePanel" class="card" style="display:none; margin-top:0; padding-top:16px;">
+        <h3 style="margin:0 0 8px;">⚡ Auto-Generate League Fixtures</h3>
+        <p style="color:#94a3b8; margin:0 0 14px; font-size:14px;">Creates all unique team-pair matches for the selected League tournament. Already-existing fixtures are skipped.</p>
+        <div id="generateMsg" style="display:none; margin-bottom:10px;"></div>
+        <button id="generateBtn" style="padding:10px 24px; background:#0f2040; border:1px solid #7dd3fc; color:#7dd3fc; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Generate All Matches</button>
+    </div>
+
     <div class="table-container">
         <h3>All Matches</h3>
+        <div class="search-bar">
+            <input type="text" id="matchSearch" placeholder="🔍 Search matches...">
+        </div>
         <table id="matchTable">
             <thead>
                 <tr>
@@ -75,6 +87,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
             let allTeams = [];
             let AllTournament = [];
+            const tp = new TablePager('matchBody', { pageSize: 10, searchId: 'matchSearch' });
 
             function loadMatches() {
                 $.ajax({
@@ -85,8 +98,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                         const $body = $('#matchBody');
                         if (response.status === 'success' && response.data.length > 0) {
                             $body.empty();
+                            const rows = [];
                             response.data.forEach(match => {
-                                $body.append(`
+                                const tr = $(`
                         <tr data-id="${match.id}">
                             <td class="col-tournament">${match.tournament_name}</td>
                             <td class="col-team1">${match.team1_name}</td>
@@ -97,11 +111,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                                 <span class="delete-icon" title="Delete">🗑️</span>
                             </td>
                         </tr>
-                    `);
+                    `)[0];
+                                rows.push(tr);
                             });
+                            tp.setRows(rows);
                             attachActionListeners();
                         } else {
                             $body.html('<tr><td colspan="5" class="no-records">No matches found.</td></tr>');
+                            tp.setRows([]);
                         }
                     },
                     error: function() {
@@ -191,6 +208,47 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                 });
             }
             loadTournament();
+
+            // ── Show/hide generate panel based on tournament type ────────────
+            $('#tournament_id').on('change', function() {
+                const tId = $(this).val();
+                const t = AllTournament.find(t => t.id == tId);
+                if (t && t.type === 'league') {
+                    $('#generatePanel').show();
+                } else {
+                    $('#generatePanel').hide();
+                }
+            });
+
+            // ── Generate league matches ──────────────────────────────────────
+            $('#generateBtn').on('click', function() {
+                const tId = $('#tournament_id').val();
+                if (!tId) { alert('Please select a tournament first.'); return; }
+                if (!confirm('Generate all remaining league fixtures for this tournament?')) return;
+
+                const $btn = $(this);
+                const $msg = $('#generateMsg');
+                $btn.prop('disabled', true).text('Generating...');
+                $msg.hide();
+
+                $.ajax({
+                    url: '../api/match/generateLeagueMatches.php',
+                    method: 'POST',
+                    data: { tournament_id: tId },
+                    dataType: 'json',
+                    success: function(res) {
+                        const cls = res.status === 'success' ? 'success-box' : 'error-box';
+                        $msg.attr('class', cls).text(res.message).show();
+                        if (res.status === 'success') loadMatches();
+                    },
+                    error: function() {
+                        $msg.attr('class', 'error-box').text('Server error occurred.').show();
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('Generate All Matches');
+                    }
+                });
+            });
 
             $('#matchForm').on('submit', function(e) {
                 e.preventDefault();

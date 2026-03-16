@@ -39,11 +39,17 @@ if (!$rows) {
 }
 $id = $rows['id'];
 
+// Block deletion if the tournament already has matches (data integrity)
+$stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM matches WHERE tournament_id = ?");
+$stmt->execute([$id]);
+$matchCount = (int)$stmt->fetchColumn();
+if ($matchCount > 0) {
+    echo json_encode(['status' => 'error', 'message' => "Cannot delete tournament: it has {$matchCount} match(es). Delete the matches first."]);
+    exit();
+}
+
 // DELETE tournament
-$stmt = $conn->prepare("
-    DELETE FROm tournaments 
-    WHERE id = ?;
-");
+$stmt = $conn->prepare("DELETE FROM tournaments WHERE id = ?;");
 $stmt->execute([$id]);
 
 echo json_encode([

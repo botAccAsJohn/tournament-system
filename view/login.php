@@ -1,7 +1,8 @@
 <?php
 session_start();
-if(isset($_SESSION["user_id"])){
-    header("location: welcome.php");
+if (isset($_SESSION['user_id'])) {
+    $redirect = ($_SESSION['user_role'] ?? '') === 'admin' ? 'welcome.php' : 'playerDashboard.php';
+    header('Location: ' . $redirect);
     exit();
 }
 ?>
@@ -72,8 +73,9 @@ $(document).ready(function () {
                         .text(response.message)
                         .show();
 
+                    const dest = response.role === 'admin' ? 'welcome.php' : 'playerDashboard.php';
                     setTimeout(() => {
-                        window.location.href = 'welcome.php';
+                        window.location.href = dest;
                     }, 1500);
 
                 } else {

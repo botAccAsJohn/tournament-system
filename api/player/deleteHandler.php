@@ -26,8 +26,8 @@ if (empty($id)) {
 try {
     $conn->beginTransaction();
     
-    // Get user_id associated with this player
-    $stmt = $conn->prepare("SELECT user_id FROM players WHERE id = ?");
+    // Get user_id and team_id associated with this player
+    $stmt = $conn->prepare("SELECT user_id, team_id FROM players WHERE id = ?");
     $stmt->execute([$id]);
     $player = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -35,10 +35,19 @@ try {
         throw new Exception("Player not found.");
     }
     
-    $user_id = $player['user_id'];
+    // Enforce min 5 players per team
+    if (!empty($player['team_id'])) {
+        $stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM players WHERE team_id = ?");
+        $stmt->execute([$player['team_id']]);
+        $count = (int)$stmt->fetchColumn();
+        if ($count <= 5) {
+            $conn->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'Cannot delete player: a team must have at least 5 players. Remove the player from the team first, or ensure the team retains 5 members.']);
+            exit();
+        }
+    }
     
-    // Deleting the user will cascade to the player (if FK is ON DELETE CASCADE)
-    // or we can delete both explicitly to be safe.
+    $user_id = $player['user_id'];
     
     $stmt = $conn->prepare("DELETE FROM players WHERE id = ?");
     $stmt->execute([$id]);

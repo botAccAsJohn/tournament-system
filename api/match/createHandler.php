@@ -64,6 +64,23 @@ if (!$stmt->fetch()) {
     exit();
 }
 
+// Check both teams have at least 5 players
+$stmt = $conn->prepare("
+    SELECT t.id, t.name, COUNT(p.id) AS player_count
+    FROM teams t
+    LEFT JOIN players p ON p.team_id = t.id
+    WHERE t.id IN (?, ?)
+    GROUP BY t.id, t.name
+    HAVING COUNT(p.id) < 5
+");
+$stmt->execute([$team_id_1, $team_id_2]);
+$shortTeams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if (!empty($shortTeams)) {
+    $names = implode(', ', array_column($shortTeams, 'name'));
+    echo json_encode(['status' => 'error', 'message' => "The following team(s) have fewer than 5 players and cannot be scheduled: {$names}."]);
+    exit();
+}
+
 // Check for duplicate match in same tournament
 $stmt = $conn->prepare("
     SELECT id FROM matches 
@@ -73,6 +90,18 @@ $stmt = $conn->prepare("
 $stmt->execute([$tournament_id, $team_id_1, $team_id_2, $team_id_2, $team_id_1]);
 if ($stmt->fetch()) {
     echo json_encode(['status' => 'error', 'message' => 'A match between these two teams already exists in this tournament.']);
+    exit();
+}
+
+// Check same-day double booking for either team
+$stmt = $conn->prepare("
+    SELECT id FROM matches
+    WHERE match_date = ?
+      AND (team1_id IN (?,?) OR team2_id IN (?,?))
+");
+$stmt->execute([$match_date, $team_id_1, $team_id_2, $team_id_1, $team_id_2]);
+if ($stmt->fetch()) {
+    echo json_encode(['status' => 'error', 'message' => 'One or both teams already have a match scheduled on this date.']);
     exit();
 }
 

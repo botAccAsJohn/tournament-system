@@ -4,7 +4,7 @@ require_once '../../DB/dbConnection.php';
 $conn = dbConnection();
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized.']);
     exit();
@@ -45,6 +45,8 @@ try {
     // ]);
 
     $sql = "SELECT 
+            m.id,
+            m.status,
             t.name AS Tournament,
             team1.name AS Team1,
             team2.name AS Team2,
@@ -53,6 +55,7 @@ try {
             CASE 
                 WHEN ms.team1_score > ms.team2_score THEN team1.name
                 WHEN ms.team2_score > ms.team1_score THEN team2.name
+                WHEN ms.team1_score IS NULL           THEN 'Pending'
                 ELSE 'Draw'
             END AS Result
         FROM matches m

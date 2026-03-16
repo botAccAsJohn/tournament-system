@@ -3,7 +3,7 @@ session_start();
 require_once '../../DB/dbConnection.php';
 $conn = dbConnection();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized.']);
     exit();

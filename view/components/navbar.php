@@ -1,11 +1,21 @@
 <nav class="navbar">
     <ul class="nav-list">
-        <li><a href="./welcome.php">Home</a></li>
-        <li><a href="./tournament.php">Tournament</a></li>
-        <li><a href="./team.php">Team</a></li>
-        <li><a href="./player.php">Players</a></li>
-        <li><a href="./match.php">Match</a></li>
-        <li><a href="./matchScore.php">Match Score</a></li>
+        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin'): ?>
+            <!-- Admin navigation -->
+            <li><a href="./welcome.php">Home</a></li>
+            <li><a href="./tournament.php">Tournament</a></li>
+            <li><a href="./team.php">Team</a></li>
+            <li><a href="./player.php">Players</a></li>
+            <li><a href="./match.php">Match</a></li>
+            <li><a href="./matchScore.php">Match Score</a></li>
+            <li><a href="./leaderboard.php">Leaderboard</a></li>
+        <?php else: ?>
+            <!-- Player navigation -->
+            <li><a href="./playerDashboard.php">Home</a></li>
+            <li><a href="./playerView/tournaments.php">Tournaments</a></li>
+            <li><a href="./playerView/matches.php">Matches</a></li>
+            <li><a href="./leaderboard.php">Leaderboard</a></li>
+        <?php endif; ?>
     </ul>
 </nav>
 <style>
@@ -14,31 +24,16 @@
         top: 20px;
         left: 50%;
         transform: translateX(-50%);
-        background: blur;
-        opacity: 1;
-        padding: 18px 40px;
-        border-radius: 40px;
-        box-shadow: 2px 8px 25px rgba(0, 0, 0, 0.4);
-    }
-
-    .navbar {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-
         padding: 18px 25px;
         border-radius: 40px;
-
         background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(10px) saturate(120%);
         -webkit-backdrop-filter: blur(18px) saturate(180%);
-
         border: 1px solid rgba(255, 255, 255, 0.15);
-
         box-shadow:
             0 10px 30px rgba(0, 0, 0, 0.35),
             inset 0 0 12px rgba(255, 255, 255, 0.08);
+        z-index: 1000;
     }
 
     .nav-list {

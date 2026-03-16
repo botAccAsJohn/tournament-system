@@ -14,6 +14,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     <title>Create Tournament</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="tableUtils.js"></script>
 </head>
 
 <body>
@@ -59,6 +60,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
     <div class="table-container">
         <h3>All Tournaments</h3>
+        <div class="search-bar">
+            <input type="text" id="tournamentSearch" placeholder="🔍 Search tournaments...">
+        </div>
         <table id="tournamentsTable">
             <thead>
                 <tr>
@@ -82,6 +86,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
 <script>
     $(document).ready(function() {
+        const tp = new TablePager('tournamentBody', { pageSize: 10, searchId: 'tournamentSearch' });
 
         // Set min date for start_date to today
         const today = new Date().toISOString().split('T')[0];
@@ -107,9 +112,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 
                     if (response.status === 'success' && response.data.length > 0) {
                         $tbody.empty();
+                        const rows = [];
                         response.data.forEach(element => {
                             const statusClass = 'status-' + (element['status'] || 'upcoming');
-                            const row = `<tr data-id="${element['id']}">
+                            const tr = $(`<tr data-id="${element['id']}">
                             <td class="col-name">${element['name']}</td>
                             <td class="col-type">${element['type'] ? element['type'].charAt(0).toUpperCase() + element['type'].slice(1) : 'N/A'}</td>
                             <td class="col-start">${element['start_date'] || 'N/A'}</td>
@@ -119,12 +125,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
                                 <span class="edit-icon" title="Edit">✏️</span>
                                 <span class="delete-icon" title="Delete">🗑️</span>
                             </td>
-                        </tr>`;
-                            $tbody.append(row);
+                        </tr>`)[0];
+                            rows.push(tr);
                         });
+                        tp.setRows(rows);
                         attachActionListeners();
                     } else {
                         $tbody.html('<tr><td colspan="6" class="no-tournaments">No tournaments found.</td></tr>');
+                        tp.setRows([]);
                     }
                 },
 

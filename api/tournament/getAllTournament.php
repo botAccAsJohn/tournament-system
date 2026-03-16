@@ -3,7 +3,7 @@ session_start();
 require_once '../../DB/dbConnection.php';
 $conn = dbConnection();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(403);
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized.']);
     exit();
@@ -24,19 +24,18 @@ if (!empty($errors)) {
     exit();
 }
 
-// Check duplicate name
-$result = $conn->query("SELECT * FROM tournaments;");
-if ($result->rowCount() === 0) {
-    echo json_encode(['status' => 'success', 'message' => 'No tournaments found', 'data' => []]);
-    exit();
-} else {
-    $rows = $result->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT id, name, type, start_date, end_date, status FROM tournaments ORDER BY created_at DESC");
+    $stmt->execute();
+    if ($stmt->rowCount() === 0) {
+        echo json_encode(['status' => 'success', 'message' => 'No tournaments found', 'data' => []]);
+        exit();
+    }
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode([
-    'status'  => 'success',
-    'message' => 'Tournament Fetch successfully!',
-    'data' => $rows
-]);
-}
+        'status'  => 'success',
+        'message' => 'Tournaments fetched successfully!',
+        'data'    => $rows
+    ]);
 
 // Insert
 // $stmt = $conn->prepare("

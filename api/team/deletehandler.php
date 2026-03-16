@@ -37,9 +37,19 @@ if (!$rows) {
     echo json_encode(['status' => 'error', 'message' => 'A team with this data not exists.']);
     exit();
 }
-$id = $rows['id'];
+$id            = $rows['id'];
+$tournament_id = $rows['tournament_id'];
 
-// DELETE tournament
+// Enforce min 2 teams per tournament
+$stmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM teams WHERE tournament_id = ?");
+$stmt->execute([$tournament_id]);
+$teamCount = (int)$stmt->fetchColumn();
+if ($teamCount <= 2) {
+    echo json_encode(['status' => 'error', 'message' => 'Cannot delete team: a tournament must have at least 2 teams.']);
+    exit();
+}
+
+// DELETE team
 $stmt = $conn->prepare("DELETE FROM teams WHERE id = ?;");
 $stmt->execute([$id]);
 
